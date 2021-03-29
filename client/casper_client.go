@@ -1,6 +1,9 @@
 package client
 
-import "github.com/JFJun/casperlabs-go/common"
+import (
+	"github.com/JFJun/casperlabs-go/common"
+	"github.com/JFJun/casperlabs-go/model"
+)
 
 type CasperClient struct {
 	url, user, password string
@@ -31,23 +34,53 @@ func (cc *CasperClient) GetDeployByHash(deployHash string) {
 /*
 根据区块hash获取区块的信息
 */
-func (cc *CasperClient) GetBlockInfo(blockHash string) {
-	//todo
+func (cc *CasperClient) GetBlockInfoByHash(blockHash string) (*model.ChainBlock, error) {
+	var res model.ChainBlock
+	params := make(map[string]interface{})
+	params["block_identifier"] = map[string]interface{}{
+		"Hash": blockHash,
+	}
+	err := cc.casper.SendRequest("chain_get_block", &res, params)
+	if err != nil {
+		return nil, err
+	}
+
+	return &res, nil
 }
 
 /*
 根据区块height获取区块的信息
 */
-func (cc *CasperClient) GetBlockInfoByHeight(height int64) {
-	//todo
+func (cc *CasperClient) GetBlockInfoByHeight(height int64) (*model.ChainBlock, error) {
+	var res model.ChainBlock
+	params := make(map[string]interface{})
+	params["block_identifier"] = map[string]interface{}{
+		"Height": height,
+	}
+	err := cc.casper.SendRequest("chain_get_block", &res, params)
+	if err != nil {
+		return nil, err
+	}
+
+	return &res, nil
 }
 
-func (cc *CasperClient) GetLatestBlockInfo() {
-	//todo
+func (cc *CasperClient) GetLatestBlockHeight() (int64, error) {
+	var res model.ChainBlock
+	err := cc.casper.SendRequest("chain_get_block", &res, nil)
+	if err != nil {
+		return -1, err
+	}
+	return res.Block.Header.Height, err
 }
 
-func (cc *CasperClient) GetStatus() {
-	//todo
+func (cc *CasperClient) GetStatus() (*model.ChainStatus, error) {
+	var status model.ChainStatus
+	err := cc.casper.SendRequest("info_get_status", &status, nil)
+	if err != nil {
+		return nil, err
+	}
+	return &status, nil
 }
 
 /*
