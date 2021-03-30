@@ -1,24 +1,26 @@
 package client
 
 import (
+	"fmt"
 	"github.com/JFJun/casperlabs-go/common"
 	"github.com/JFJun/casperlabs-go/model"
 )
 
 type CasperClient struct {
-	url, user, password string
-	casper              *common.RpcClient
+	url           string
+	casper        *common.RpcClient
+	eventStoreApi string
 }
 
 /*
 仅支持http,https
 */
-func New(url, user, password string) *CasperClient {
+func New(url, eventStoreApi string) *CasperClient {
 	cc := new(CasperClient)
 	cc.url = url
-	cc.user = user
-	cc.password = password
-	cc.casper = common.Dial(cc.url, cc.user, cc.password)
+	cc.eventStoreApi = eventStoreApi
+
+	cc.casper = common.Dial(cc.url, "", "")
 	return cc
 }
 
@@ -27,8 +29,14 @@ func New(url, user, password string) *CasperClient {
 deployHash就是txid
 */
 func (cc *CasperClient) GetDeployByHash(deployHash string) {
-	//todo
-
+	url := fmt.Sprintf("%s/deploy/%s", cc.eventStoreApi, deployHash)
+	req := common.HttpGet(url)
+	data, err := req.Bytes()
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	fmt.Println(string(data))
 }
 
 /*
@@ -44,7 +52,6 @@ func (cc *CasperClient) GetBlockInfoByHash(blockHash string) (*model.ChainBlock,
 	if err != nil {
 		return nil, err
 	}
-
 	return &res, nil
 }
 
