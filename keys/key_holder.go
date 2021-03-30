@@ -83,10 +83,13 @@ func parsePrivateKey(priv []byte) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return base64.StdEncoding.EncodeToString(bytes.Join([][]byte{
+	content := base64.StdEncoding.EncodeToString(bytes.Join([][]byte{
 		{48, 46, 2, 1, 0, 48, 5, 6, 3, 43, 101, 112, 4, 34, 4, 32},
 		pkBytes,
-	}, []byte{})), nil
+	}, []byte{}))
+
+	return "-----BEGIN PRIVATE KEY-----\n" + content + "\n" + "-----END PRIVATE KEY-----\n", nil
+
 }
 
 func parsePublicKey(pub []byte) (string, error) {
@@ -94,10 +97,11 @@ func parsePublicKey(pub []byte) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return base64.StdEncoding.EncodeToString(bytes.Join([][]byte{
+	content := base64.StdEncoding.EncodeToString(bytes.Join([][]byte{
 		{48, 42, 48, 5, 6, 3, 43, 101, 112, 3, 33, 0},
 		pkBytes,
-	}, []byte{})), nil
+	}, []byte{}))
+	return "-----BEGIN PUBLIC KEY-----\n" + content + "\n" + "-----END PUBLIC KEY-----\n", nil
 }
 
 func parseKey(byteData []byte, from int, to int) ([]byte, error) {

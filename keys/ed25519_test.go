@@ -24,12 +24,14 @@ var ed25519VK = validedKey{
 	//-----BEGIN PRIVATE KEY-----
 	//MC4CAQAwBQYDK2VwBCIEIBi2p4YSZ58JCjZuKSdKbFB8ixdrJIZHqNMtaJIuhOF5
 	//-----END PRIVATE KEY-----
-	privateKeyPem: "MC4CAQAwBQYDK2VwBCIEIBi2p4YSZ58JCjZuKSdKbFB8ixdrJIZHqNMtaJIuhOF5",
+	privateKeyPem:
+	"-----BEGIN PRIVATE KEY-----\n" + "MC4CAQAwBQYDK2VwBCIEIBi2p4YSZ58JCjZuKSdKbFB8ixdrJIZHqNMtaJIuhOF5\n" + "-----END PRIVATE KEY-----\n",
 	//PEM公钥文件，完整格式：
 	//-----BEGIN PUBLIC KEY-----
 	//MCowBQYDK2VwAyEAeKEooE0MhphnznYVBcR+slT22meCiBHH6WYIs6KKHjw=
 	//-----END PUBLIC KEY-----
-	publicKeyPem: "MCowBQYDK2VwAyEAeKEooE0MhphnznYVBcR+slT22meCiBHH6WYIs6KKHjw=",
+	publicKeyPem:
+	"-----BEGIN PUBLIC KEY-----\n" + "MCowBQYDK2VwAyEAeKEooE0MhphnznYVBcR+slT22meCiBHH6WYIs6KKHjw=\n" + "-----END PUBLIC KEY-----\n",
 }
 
 const (
@@ -54,6 +56,7 @@ func TestED25519_ParsePublicKeyToPem(t *testing.T) {
 	if err != nil {
 		t.Fatal("failed parse to public PEM")
 	}
+	fmt.Println(ed25519VK.privateKeyPem)
 	if pem != ed25519VK.publicKeyPem {
 		t.Fatal("public PEM error")
 	}
