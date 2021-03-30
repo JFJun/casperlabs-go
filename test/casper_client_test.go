@@ -61,3 +61,11 @@ func Test_GetDeployByDeployHash(t *testing.T) {
 func Test_GetBlockTransfer(t *testing.T) {
 	casper.GetBlockTransferByHeight(18584)
 }
+
+func Test_GetBalance(t *testing.T) {
+	balance, err := casper.GetBalance("018fee8e44d228eb323e72ff977699dab804d8250868bf6533d3a48b82fe46631d")
+	if err != nil {
+		t.Fatal(err)
+	}
+	fmt.Println(balance)
+}

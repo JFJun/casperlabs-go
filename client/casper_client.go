@@ -1,9 +1,12 @@
 package client
 
 import (
+	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/JFJun/casperlabs-go/common"
+	"github.com/JFJun/casperlabs-go/keys"
 	"github.com/JFJun/casperlabs-go/model"
 )
 
@@ -73,6 +76,14 @@ func (cc *CasperClient) GetBlockInfoByHeight(height int64) (*model.ChainBlock, e
 	return &res, nil
 }
 
+func (cc *CasperClient) GetLatestBlockInfo() (*model.ChainBlock, error) {
+	var res model.ChainBlock
+	err := cc.casper.SendRequest("chain_get_block", &res, nil)
+	if err != nil {
+		return nil, err
+	}
+	return &res, err
+}
 func (cc *CasperClient) GetLatestBlockHeight() (int64, error) {
 	var res model.ChainBlock
 	err := cc.casper.SendRequest("chain_get_block", &res, nil)
@@ -105,11 +116,62 @@ func (cc *CasperClient) GetStatus() (*model.ChainStatus, error) {
 	return &status, nil
 }
 
-/*
-params: Account hash or public key
-*/
-func (cc *CasperClient) GetBalance(ahopk string) {
-	//todo
+func (cc *CasperClient) GetBalance(address string) (string, error) {
+	return cc.GetBalanceWithHeight(address, -1)
+}
+func (cc *CasperClient) GetBalanceWithHeight(address string, height int64) (balance string, err error) {
+	var lb *model.ChainBlock
+	if height < 0 {
+		lb, err = cc.GetLatestBlockInfo()
+	} else {
+		lb, err = cc.GetBlockInfoByHeight(height)
+	}
+	if err != nil || lb == nil {
+		return "", fmt.Errorf("balance get state root hash error")
+	}
+	accountHash, err := keys.AddressToAccountHash(address)
+	if err != nil {
+		return "", err
+	}
+	accountHashStr := hex.EncodeToString(accountHash[:])
+	stateRootHash := lb.Block.Header.StateRootHash
+	key := fmt.Sprintf("account-hash-%s", accountHashStr)
+	bs, err := cc.GetBlockState(stateRootHash, key, nil)
+	if err != nil {
+		return "", err
+	}
+	balanceUref := bs.StoredValue.Account.MainPurse
+	if balanceUref == "" {
+		return "", errors.New("balance uref is null")
+	}
+	var ab model.AccountBalance
+	bp := map[string]interface{}{
+		"state_root_hash": stateRootHash,
+		"purse_uref":      balanceUref,
+	}
+	err = cc.casper.SendRequest("state_get_balance", &ab, bp)
+	if err != nil {
+		return "", fmt.Errorf("rpc state_get_balance error: %v", err)
+	}
+
+	return ab.BalanceValue, err
+}
+
+func (cc *CasperClient) GetBlockState(stateRootHash, key string, path []string) (*model.BlockState, error) {
+	var res model.BlockState
+	params := make(map[string]interface{})
+	params["state_root_hash"] = stateRootHash
+	params["key"] = key
+	if path == nil {
+		params["path"] = []interface{}{}
+	} else {
+		params["path"] = path
+	}
+	err := cc.casper.SendRequest("state_get_item", &res, params)
+	if err != nil {
+		return nil, fmt.Errorf("rpc state_get_item error: %v", err)
+	}
+	return &res, nil
 }
 
 func (cc *CasperClient) Transfer() {

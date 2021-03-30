@@ -1,7 +1,10 @@
 package keys
 
 import (
+	"encoding/hex"
 	"errors"
+	"fmt"
+	"golang.org/x/crypto/blake2b"
 )
 
 type SignatureAlgorithm string
@@ -43,4 +46,35 @@ func ValidAddress(address string) error {
 func Sign(private []byte, message []byte, sa SignatureAlgorithm) (sig []byte, err error) {
 	holder := NewKeyHolder(private, nil, sa)
 	return holder.Sign(message)
+}
+
+/*
+write by flynn
+*/
+func AddressToAccountHash(address string) ([]byte, error) {
+	pub, err := hex.DecodeString(address)
+	if err != nil {
+		return nil, err
+	}
+	if len(pub) != 33 {
+		return nil, fmt.Errorf("address length is not equal 33,len=[%d]", len(pub))
+	}
+	calcAccountHash := func(prefix string, rawPublicKey []byte) []byte {
+		var data []byte
+		data = append(data, []byte(prefix)...)
+		data = append(data, 0x00)
+		data = append(data, rawPublicKey...)
+		accountHash := blake2b.Sum256(data)
+		return accountHash[:]
+	}
+	var prefix string
+	if pub[0] == 0x01 {
+		prefix = "ed25519"
+	} else if pub[0] == 0x02 {
+		prefix = "secp256k1"
+	} else {
+		return nil, fmt.Errorf("unkown signature algorithm")
+	}
+	return calcAccountHash(prefix, pub[1:]), nil
+
 }
