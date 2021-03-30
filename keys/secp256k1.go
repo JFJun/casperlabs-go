@@ -78,7 +78,7 @@ func (s *SECP256K1) AccountHex() (string, error) {
 	if err := CheckPubKey(s.pubKey, s.pubByteLen); err != nil {
 		return "", err
 	}
-	return AccountHex(s.pubKey, s.prefix, s.algorithm)
+	return AccountHex(s.pubKey, s.prefix)
 }
 
 func (s *SECP256K1) Sign(message []byte) (sig []byte, err error) {
@@ -97,4 +97,12 @@ func (s *SECP256K1) Verify(message, sig []byte) (bool, error) {
 		return false, err
 	}
 	return ethcrypto.VerifySignature(s.pubKey, message, sig), nil
+}
+
+func (s *SECP256K1) ParsePrivateKeyToPem() (string, error) {
+	return parsePrivateKey(s.privateKey)
+}
+
+func (s *SECP256K1) ParsePublicKeyToPem() (string, error) {
+	return parsePublicKey(s.pubKey)
 }

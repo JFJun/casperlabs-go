@@ -73,7 +73,7 @@ func (e *ED25519) AccountHex() (string, error) {
 	if err := CheckPubKey(e.pubKey, e.pubByteLen); err != nil {
 		return "", err
 	}
-	return AccountHex(e.pubKey, e.prefix, e.algorithm)
+	return AccountHex(e.pubKey, e.prefix)
 }
 
 func (e *ED25519) Sign(message []byte) (sig []byte, err error) {
@@ -90,4 +90,12 @@ func (e *ED25519) Verify(message, sig []byte) (bool, error) {
 	}
 	pub := ed25519.PublicKey(e.pubKey)
 	return ed25519.Verify(pub, message, sig), nil
+}
+
+func (e *ED25519) ParsePrivateKeyToPem() (string, error) {
+	return parsePrivateKey(e.privateKey)
+}
+
+func (e *ED25519) ParsePublicKeyToPem() (string, error) {
+	return parsePublicKey(e.pubKey)
 }

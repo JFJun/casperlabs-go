@@ -1,16 +1,36 @@
 package keys
 
 import (
-	"bytes"
-	"crypto/rand"
-	"encoding/base64"
 	"encoding/hex"
 	"fmt"
 	"github.com/JFJun/casperlabs-go/keys/blake2b"
 	"testing"
-
-	"crypto/ed25519"
 )
+
+type validedKey struct {
+	acccountHex   string
+	privatekeyHex string
+	pubKeyHex     string
+	publicKeyPem  string
+	privateKeyPem string
+}
+
+// 已被验证的有效的key数据
+var ed25519VK = validedKey{
+	acccountHex:   "0178a128a04d0c869867ce761505c47eb254f6da67828811c7e96608b3a28a1e3c",
+	privatekeyHex: "18b6a78612679f090a366e29274a6c507c8b176b248647a8d32d68922e84e17978a128a04d0c869867ce761505c47eb254f6da67828811c7e96608b3a28a1e3c",
+	pubKeyHex:     "78a128a04d0c869867ce761505c47eb254f6da67828811c7e96608b3a28a1e3c",
+	//PEM私钥文件，完整格式：
+	//-----BEGIN PRIVATE KEY-----
+	//MC4CAQAwBQYDK2VwBCIEIBi2p4YSZ58JCjZuKSdKbFB8ixdrJIZHqNMtaJIuhOF5
+	//-----END PRIVATE KEY-----
+	privateKeyPem: "MC4CAQAwBQYDK2VwBCIEIBi2p4YSZ58JCjZuKSdKbFB8ixdrJIZHqNMtaJIuhOF5",
+	//PEM公钥文件，完整格式：
+	//-----BEGIN PUBLIC KEY-----
+	//MCowBQYDK2VwAyEAeKEooE0MhphnznYVBcR+slT22meCiBHH6WYIs6KKHjw=
+	//-----END PUBLIC KEY-----
+	publicKeyPem: "MCowBQYDK2VwAyEAeKEooE0MhphnznYVBcR+slT22meCiBHH6WYIs6KKHjw=",
+}
 
 const (
 	testEd25519 = "ed25519"
@@ -27,54 +47,28 @@ func TestED25519_GenerateKey(t *testing.T) {
 	fmt.Println(hex.EncodeToString(pub))
 }
 
-func TestED25519_GenerateKey2(t *testing.T) {
-
-	pub, priv, err := ed25519.GenerateKey(rand.Reader)
+func TestED25519_ParsePublicKeyToPem(t *testing.T) {
+	pub, _ := hex.DecodeString(ed25519VK.pubKeyHex)
+	holder := NewKeyHolder(nil, pub, testEd25519)
+	pem, err := holder.ParsePublicKeyToPem()
 	if err != nil {
-		t.Fatal(err)
+		t.Fatal("failed parse to public PEM")
 	}
-	fmt.Println(hex.EncodeToString(priv))
-	fmt.Println(hex.EncodeToString(pub))
-
-	pr := bytes.Join([][]byte{
-		{48, 46, 2, 1, 0, 48, 5, 6, 3, 43, 101, 112, 4, 34, 4, 32},
-		parseKey(priv[:32], 0, 32),
-	}, []byte{})
-
-	pu := bytes.Join([][]byte{
-		{48, 42, 48, 5, 6, 3, 43, 101, 112, 3, 33, 0},
-		parseKey(pub, 32, 64),
-	}, []byte{})
-
-	privBase64 := base64.StdEncoding.EncodeToString(pr)
-	pubBase64 := base64.StdEncoding.EncodeToString(pu)
-
-	fmt.Println(privBase64)
-	fmt.Println(pubBase64)
-
+	if pem != ed25519VK.publicKeyPem {
+		t.Fatal("public PEM error")
+	}
 }
 
-func parseKey(byteArr []byte, from int, to int) []byte {
-	l := len(byteArr)
-	// prettier-ignore
-	var key []byte
-	if l == 32 {
-		key = byteArr
-	} else {
-		if l == 64 {
-			key = byteArr[from:to]
-		} else {
-			if l >= 32 && l < 64 {
-				key = byteArr[l%32:]
-			}else {
-				key = nil
-			}
-		}
+func TestED25519_ParsePrivateKeyToPem(t *testing.T) {
+	priv, _ := hex.DecodeString(ed25519VK.privatekeyHex)
+	holder := NewKeyHolder(priv, nil, testEd25519)
+	pem, err := holder.ParsePrivateKeyToPem()
+	if err != nil {
+		t.Fatal("failed parse to private PEM")
 	}
-	if key == nil || len(key) != 32 {
-		panic("Unexpected key lengt")
+	if pem != ed25519VK.privateKeyPem {
+		t.Fatal("private PEM error")
 	}
-	return byteArr
 }
 
 func TestED25519_GenerateKeyBySeed(t *testing.T) {
@@ -88,7 +82,7 @@ func TestED25519_GenerateKeyBySeed(t *testing.T) {
 }
 
 func TestED25519_AccountHex(t *testing.T) {
-	_, pub := getED25519Key()
+	pub, _ := hex.DecodeString(ed25519VK.pubKeyHex)
 	holder := NewKeyHolder(nil, pub, testEd25519)
 
 	addr, err := holder.AccountHex()
@@ -96,12 +90,14 @@ func TestED25519_AccountHex(t *testing.T) {
 		t.Fatal(err)
 	}
 	if 66 != len(addr) {
-		t.Fatal("account len error")
+		t.Fatal("accountHex len error")
 	}
 	if addr[:2] != "01" {
-		t.Fatal("account prefix[:2] error")
+		t.Fatal("accountHex prefix[:2] error")
 	}
-	fmt.Println(addr)
+	if addr != ed25519VK.acccountHex {
+		t.Fatal("accountHex error")
+	}
 }
 
 func TestED25519_Sign(t *testing.T) {

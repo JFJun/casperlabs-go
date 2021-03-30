@@ -2,11 +2,10 @@ package keys
 
 import (
 	"bytes"
+	"encoding/base64"
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"github.com/JFJun/casperlabs-go/keys/blake2b"
-	"strings"
 )
 
 type KeyHolder interface {
@@ -14,6 +13,18 @@ type KeyHolder interface {
 	AccountHex() (string, error)
 	Sign(message []byte) (sig []byte, err error)
 	Verify(message, sig []byte) (bool, error)
+
+	//私钥转换成PEM文件格式（加工过的base64格式）例如：
+	//-----BEGIN PRIVATE KEY-----
+	//MC4CAQAwBQYDK2VwBCIEIBi2p4YSZ58JCjZuKSdKbFB8ixdrJIZHqNMtaJIuhOF5
+	//-----END PRIVATE KEY-----
+	ParsePrivateKeyToPem() (string, error)
+
+	//公钥转换成PEM文件格式（加工过的base64格式）例如：
+	//-----BEGIN PUBLIC KEY-----
+	//MCowBQYDK2VwAyEAeKEooE0MhphnznYVBcR+slT22meCiBHH6WYIs6KKHjw=
+	//-----END PUBLIC KEY-----
+	ParsePublicKeyToPem() (string, error)
 }
 
 //根据不同算法构造keyHolder，公钥和私钥入参不一定都需要
@@ -62,6 +73,55 @@ func CheckPrivKey(priv []byte, l int) error {
 	return nil
 }
 
+//根据公钥数据生成账号
+func AccountHex(pub []byte, prefix string) (string, error) {
+	return prefix + hex.EncodeToString(pub), nil
+}
+
+func parsePrivateKey(priv []byte) (string, error) {
+	pkBytes, err := parseKey(priv[:32], 0, 32)
+	if err != nil {
+		return "", err
+	}
+	return base64.StdEncoding.EncodeToString(bytes.Join([][]byte{
+		{48, 46, 2, 1, 0, 48, 5, 6, 3, 43, 101, 112, 4, 34, 4, 32},
+		pkBytes,
+	}, []byte{})), nil
+}
+
+func parsePublicKey(pub []byte) (string, error) {
+	pkBytes, err := parseKey(pub, 32, 64)
+	if err != nil {
+		return "", err
+	}
+	return base64.StdEncoding.EncodeToString(bytes.Join([][]byte{
+		{48, 42, 48, 5, 6, 3, 43, 101, 112, 3, 33, 0},
+		pkBytes,
+	}, []byte{})), nil
+}
+
+func parseKey(byteData []byte, from int, to int) ([]byte, error) {
+	dataLen := len(byteData)
+	var key []byte
+	if dataLen == 32 {
+		key = byteData
+	} else {
+		if dataLen == 64 {
+			key = byteData[from:to]
+		} else {
+			if dataLen >= 32 && dataLen < 64 {
+				key = byteData[dataLen%32:]
+			} else {
+				key = nil
+			}
+		}
+	}
+	if key == nil || len(key) != 32 {
+		return nil, errors.New("Unexpected key len")
+	}
+	return key, nil
+}
+
 func has0xPrefix(str string) bool {
 	return len(str) >= 2 && str[0] == '0' && (str[1] == 'x' || str[1] == 'X')
 }
@@ -80,22 +140,4 @@ func isHex(str string) bool {
 
 func isHexCharacter(c byte) bool {
 	return ('0' <= c && c <= '9') || ('a' <= c && c <= 'f') || ('A' <= c && c <= 'F')
-}
-
-//根据公钥数据生成账号
-//这里的组合格式参考casperlabs.client-py客户端程序：
-/*def account_hash(self) -> bytes:
-""" Generate hash of public key and key algorithm for use as primary identifier in the system as bytes """
-# account hash is the one place where algorithm is used in upper case.
-return crypto.blake2b_hash(
-self.algorithm.upper().encode("UTF-8") + b"\x00" + self.public_key
-)*/
-func AccountHex(pub []byte, prefix string, sa SignatureAlgorithm) (string, error) {
-	s := strings.ToUpper(string(sa))
-	msg := bytes.Join([][]byte{
-		[]byte(s),
-		{0},
-		pub,
-	}, []byte{})
-	return prefix + hex.EncodeToString(blake2b.Hash(msg)), nil
 }
