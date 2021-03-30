@@ -43,14 +43,19 @@ func IsAccount(addr string) bool {
 	if has0xPrefix(addr) {
 		addr = addr[2:]
 	}
-	if len(addr) != 66 {
-		return false
-	}
 	if !isHex(addr) {
 		return false
 	}
 	prefix := addr[:2]
-	return prefix == "01" || prefix == "02"
+	addrLen := 0
+	if prefix == "01" {
+		addrLen = 66
+	} else if prefix == "02" {
+		addrLen = 68
+	} else {
+		return false
+	}
+	return addrLen == len(addr)
 }
 
 func CheckPubKey(pub []byte, l int) error {

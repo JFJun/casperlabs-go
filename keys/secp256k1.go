@@ -5,7 +5,6 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"github.com/JFJun/casperlabs-go/keys/blake2b"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/crypto/secp256k1"
 	"math/big"
@@ -55,9 +54,7 @@ func (s *SECP256K1) GenerateKeyBySeed(seed []byte) ([]byte, []byte, error) {
 	priv := new(ecdsa.PrivateKey)
 	priv.D = new(big.Int).SetBytes(seed)
 	priv.X, priv.Y = cruve.ScalarBaseMult(priv.D.Bytes())
-	comPub := secp256k1.CompressPubkey(priv.X, priv.Y)
-	pub := blake2b.Hash(comPub)
-	return priv.D.Bytes(), pub[:], nil
+	return priv.D.Bytes(), ethcrypto.FromECDSAPub(&priv.PublicKey), nil
 }
 
 func (s *SECP256K1) PrivateToPubKey() ([]byte, error) {
@@ -78,7 +75,11 @@ func (s *SECP256K1) AccountHex() (string, error) {
 	if err := CheckPubKey(s.pubKey, s.pubByteLen); err != nil {
 		return "", err
 	}
-	return AccountHex(s.pubKey, s.prefix)
+	pubkey, err := ethcrypto.UnmarshalPubkey(s.pubKey)
+	if err != nil {
+		return "", err
+	}
+	return AccountHex(ethcrypto.CompressPubkey(pubkey), s.prefix)
 }
 
 func (s *SECP256K1) Sign(message []byte) (sig []byte, err error) {
