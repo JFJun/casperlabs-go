@@ -57,3 +57,7 @@ func Test_GetDeployByDeployHash(t *testing.T) {
 	txid := "20f1190d4ddc06246e07d5fd0454d90f3b509936e3d2584350239104e183a000"
 	casper.GetDeployByHash(txid)
 }
+
+func Test_GetBlockTransfer(t *testing.T) {
+	casper.GetBlockTransferByHeight(18584)
+}
