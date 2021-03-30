@@ -4,9 +4,6 @@ import (
 	"encoding/hex"
 	"fmt"
 	"github.com/JFJun/casperlabs-go/keys/blake2b"
-	ofblake2b "golang.org/x/crypto/blake2b"
-
-	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	"testing"
 )
 
@@ -66,8 +63,6 @@ func TestSECP256K1_Sign(t *testing.T) {
 
 	msg := blake2b.Hash([]byte("abcde!!"))
 
-	//sig2 := []byte("abcde!!2")
-
 	holder := NewKeyHolder(priv, pub, testSecp256k1)
 	sig, err := holder.Sign(msg)
 	if err != nil {
@@ -83,31 +78,8 @@ func TestSECP256K1_Sign(t *testing.T) {
 
 }
 
-func TestSECP256K1_Sign2(t *testing.T) {
-	priv, pub := getSECP256K1Key()
-
-	msg := []byte("123abc")
-	if len(msg) > 256 {
-		h := ofblake2b.Sum256(msg)
-		msg = h[:]
-	}
-
-	privateKey, err := ethcrypto.ToECDSA(priv)
-	sig, err := ethcrypto.Sign(msg, privateKey)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	fmt.Println(hex.EncodeToString(sig))
-	verify := ethcrypto.VerifySignature(pub, msg, sig)
-	if !verify {
-		t.Fatal("failed to signature msg")
-	}
-
-}
-
 func getSECP256K1Key() ([]byte, []byte) {
 	priv, _ := hex.DecodeString("be798eee9bb3fa267e0525a7633260c5d2a9512dd2f96b8d621f560dd233d99a")
-	pub, _ := hex.DecodeString("04447239548b66bdfe334131392dd9db386c054989e2b815fe68fd634c9e4703a146f5ce1f7aa7207295ba4650cdf2ce226db74866a691fe45f955a40796366eb3")
+	pub, _ := hex.DecodeString("03447239548b66bdfe334131392dd9db386c054989e2b815fe68fd634c9e4703a1")
 	return priv, pub
 }

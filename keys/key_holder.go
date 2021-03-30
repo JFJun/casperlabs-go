@@ -2,14 +2,18 @@ package keys
 
 import (
 	"bytes"
-	"encoding/base64"
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/JFJun/casperlabs-go/keys/blake2b"
 )
 
 type KeyHolder interface {
 	PrivateToPubKey() ([]byte, error)
+	//账号十六进制格式
+	//注意：这里返回的是accountHex，并非accountHash
+	//accountHex代表一个账号的唯一值，从公钥哈希值派生
+	//可用作查询账号相关的操作，如余额
 	AccountHex() (string, error)
 	Sign(message []byte) (sig []byte, err error)
 	Verify(message, sig []byte) (bool, error)
@@ -78,57 +82,19 @@ func CheckPrivKey(priv []byte, l int) error {
 	return nil
 }
 
-//根据公钥数据生成账号
+//根据公钥数据生成accountHash
+func AccountHash(pub []byte, sa SignatureAlgorithm) (string, error) {
+	msg := bytes.Join([][]byte{
+		[]byte(sa),
+		{0},
+		pub,
+	}, []byte{})
+	return hex.EncodeToString(blake2b.Hash(msg)), nil
+}
+
+//根据公钥数据生成accountHex
 func AccountHex(pub []byte, prefix string) (string, error) {
 	return prefix + hex.EncodeToString(pub), nil
-}
-
-func parsePrivateKey(priv []byte) (string, error) {
-	pkBytes, err := parseKey(priv[:32], 0, 32)
-	if err != nil {
-		return "", err
-	}
-	content := base64.StdEncoding.EncodeToString(bytes.Join([][]byte{
-		{48, 46, 2, 1, 0, 48, 5, 6, 3, 43, 101, 112, 4, 34, 4, 32},
-		pkBytes,
-	}, []byte{}))
-
-	return "-----BEGIN PRIVATE KEY-----\n" + content + "\n" + "-----END PRIVATE KEY-----\n", nil
-
-}
-
-func parsePublicKey(pub []byte) (string, error) {
-	pkBytes, err := parseKey(pub, 32, 64)
-	if err != nil {
-		return "", err
-	}
-	content := base64.StdEncoding.EncodeToString(bytes.Join([][]byte{
-		{48, 42, 48, 5, 6, 3, 43, 101, 112, 3, 33, 0},
-		pkBytes,
-	}, []byte{}))
-	return "-----BEGIN PUBLIC KEY-----\n" + content + "\n" + "-----END PUBLIC KEY-----\n", nil
-}
-
-func parseKey(byteData []byte, from int, to int) ([]byte, error) {
-	dataLen := len(byteData)
-	var key []byte
-	if dataLen == 32 {
-		key = byteData
-	} else {
-		if dataLen == 64 {
-			key = byteData[from:to]
-		} else {
-			if dataLen >= 32 && dataLen < 64 {
-				key = byteData[dataLen%32:]
-			} else {
-				key = nil
-			}
-		}
-	}
-	if key == nil || len(key) != 32 {
-		return nil, errors.New("Unexpected key len")
-	}
-	return key, nil
 }
 
 func has0xPrefix(str string) bool {

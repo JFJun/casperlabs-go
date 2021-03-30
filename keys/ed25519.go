@@ -3,6 +3,7 @@ package keys
 import (
 	"bytes"
 	"crypto/rand"
+	"encoding/base64"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -10,7 +11,7 @@ import (
 )
 
 type ED25519 struct {
-	//使用此算法生成的秘钥对应的账号前缀
+	//使用此算法生成的密钥对应的账号前缀
 	prefix string
 	//使用的算法
 	algorithm SignatureAlgorithm
@@ -19,9 +20,9 @@ type ED25519 struct {
 	//生成的私钥字节长度，注意这里是原始的私钥长度
 	privByteLen int
 
-	//保持的私钥数据
+	//保存的私钥数据
 	privateKey []byte
-	//保持的公钥数据
+	//保存的公钥数据
 	pubKey []byte
 }
 
@@ -36,6 +37,7 @@ func NewED25519(private []byte, public []byte) *ED25519 {
 	}
 }
 
+//注意：这里返回的私钥是64字节长度
 func (e *ED25519) GenerateKey() ([]byte, []byte, error) {
 	pub, priv, err := ed25519.GenerateKey(rand.Reader)
 	if err != nil {
@@ -50,6 +52,7 @@ func (e *ED25519) GenerateKey() ([]byte, []byte, error) {
 	return priv[:], pub[:], nil
 }
 
+//注意：这里返回的私钥是64字节长度
 func (e *ED25519) GenerateKeyBySeed(seed []byte) ([]byte, []byte, error) {
 	priv := ed25519.NewKeyFromSeed(seed)
 	if len(priv) != e.privByteLen {
@@ -93,9 +96,49 @@ func (e *ED25519) Verify(message, sig []byte) (bool, error) {
 }
 
 func (e *ED25519) ParsePrivateKeyToPem() (string, error) {
-	return parsePrivateKey(e.privateKey)
+	pkBytes, err := parseKey(e.privateKey[:32], 0, 32)
+	if err != nil {
+		return "", err
+	}
+	content := base64.StdEncoding.EncodeToString(bytes.Join([][]byte{
+		{48, 46, 2, 1, 0, 48, 5, 6, 3, 43, 101, 112, 4, 34, 4, 32},
+		pkBytes,
+	}, []byte{}))
+
+	return "-----BEGIN PRIVATE KEY-----\n" + content + "\n" + "-----END PRIVATE KEY-----\n", nil
+
 }
 
 func (e *ED25519) ParsePublicKeyToPem() (string, error) {
-	return parsePublicKey(e.pubKey)
+	pkBytes, err := parseKey(e.pubKey, 32, 64)
+	if err != nil {
+		return "", err
+	}
+	content := base64.StdEncoding.EncodeToString(bytes.Join([][]byte{
+		{48, 42, 48, 5, 6, 3, 43, 101, 112, 3, 33, 0},
+		pkBytes,
+	}, []byte{}))
+	return "-----BEGIN PUBLIC KEY-----\n" + content + "\n" + "-----END PUBLIC KEY-----\n", nil
+}
+
+func parseKey(byteData []byte, from int, to int) ([]byte, error) {
+	dataLen := len(byteData)
+	var key []byte
+	if dataLen == 32 {
+		key = byteData
+	} else {
+		if dataLen == 64 {
+			key = byteData[from:to]
+		} else {
+			if dataLen >= 32 && dataLen < 64 {
+				key = byteData[dataLen%32:]
+			} else {
+				key = nil
+			}
+		}
+	}
+	if key == nil || len(key) != 32 {
+		return nil, errors.New("Unexpected key len")
+	}
+	return key, nil
 }

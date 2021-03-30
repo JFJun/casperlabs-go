@@ -1,13 +1,13 @@
 package keys
 
-
-
+//密钥生成接口
+//包含密钥生成相关的功能
 type KeyGenerator interface {
-	//生成秘钥对
+	//生成密钥对
 	//return:私钥 公钥
 	GenerateKey() ([]byte, []byte, error)
 
-	//根据种子生成秘钥对
+	//根据种子生成密钥对
 	//return:私钥 公钥
 	GenerateKeyBySeed(seed []byte) ([]byte, []byte, error)
 }
