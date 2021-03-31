@@ -128,3 +128,4 @@ func getED25519Key() ([]byte, []byte) {
 	pub, _ := hex.DecodeString("66065ad33dc8adaeb8677690696918aed102be664718434316aca52d51ae3922")
 	return priv, pub
 }
+

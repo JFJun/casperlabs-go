@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/JFJun/casperlabs-go/common/hexutil"
 	"github.com/JFJun/casperlabs-go/keys/blake2b"
 )
 
@@ -44,10 +45,10 @@ func NewKeyHolder(private []byte, pub []byte, algorithm SignatureAlgorithm) KeyH
 }
 
 func IsAccount(addr string) bool {
-	if has0xPrefix(addr) {
+	if hexutil.Has0xPrefix(addr) {
 		addr = addr[2:]
 	}
-	if !isHex(addr) {
+	if !hexutil.IsHex(addr) {
 		return false
 	}
 	prefix := addr[:2]
@@ -95,24 +96,4 @@ func AccountHash(pub []byte, sa SignatureAlgorithm) (string, error) {
 //根据公钥数据生成accountHex
 func AccountHex(pub []byte, prefix string) (string, error) {
 	return prefix + hex.EncodeToString(pub), nil
-}
-
-func has0xPrefix(str string) bool {
-	return len(str) >= 2 && str[0] == '0' && (str[1] == 'x' || str[1] == 'X')
-}
-
-func isHex(str string) bool {
-	if len(str)%2 != 0 {
-		return false
-	}
-	for _, c := range []byte(str) {
-		if !isHexCharacter(c) {
-			return false
-		}
-	}
-	return true
-}
-
-func isHexCharacter(c byte) bool {
-	return ('0' <= c && c <= '9') || ('a' <= c && c <= 'f') || ('A' <= c && c <= 'F')
 }
