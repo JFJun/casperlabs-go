@@ -2,7 +2,6 @@ package client
 
 import (
 	"encoding/hex"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/JFJun/casperlabs-go/common"
@@ -93,18 +92,17 @@ func (cc *CasperClient) GetLatestBlockHeight() (int64, error) {
 	return res.Block.Header.Height, err
 }
 
-func (cc *CasperClient) GetBlockTransferByHeight(height int64) {
-	var res interface{}
+func (cc *CasperClient) GetBlockTransferByHeight(height int64) (*model.BlockTransfer, error) {
+	var res model.BlockTransfer
 	params := make(map[string]interface{})
 	params["block_identifier"] = map[string]interface{}{
 		"Height": height,
 	}
 	err := cc.casper.SendRequest("chain_get_block_transfers", &res, params)
 	if err != nil {
-		panic(err)
+		return nil, fmt.Errorf("rpc chain_get_block_transfers error: %v", err)
 	}
-	d, _ := json.Marshal(res)
-	fmt.Println(string(d))
+	return &res, nil
 }
 
 func (cc *CasperClient) GetStatus() (*model.ChainStatus, error) {
